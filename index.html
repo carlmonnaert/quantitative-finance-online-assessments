@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quant OA Mock Platform</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Quant Trading / Quant Research Assessment</h1>
+        <p class="subtitle">HackerRank-style mock test interface</p>
+      </div>
+      <div class="status-group">
+        <div class="pill" id="questionProgress">Question 0 / 0</div>
+        <div class="pill timer" id="timer">15:00</div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="question-nav" id="questionNav"></aside>
+
+      <section class="question-panel">
+        <div id="emptyState" class="empty-state hidden">
+          <h2>No questions loaded</h2>
+          <p>Check <strong>question-bank/manifest.json</strong> and the referenced files.</p>
+        </div>
+
+        <div id="questionContainer" class="hidden">
+          <h2 id="questionTitle"></h2>
+          <p id="questionPrompt"></p>
+          <div id="choices" class="choices"></div>
+          <div id="freeResponse" class="free-response hidden">
+            <label for="responseInput" id="responseLabel">Answer</label>
+            <textarea id="responseInput" rows="4" placeholder="Type your answer"></textarea>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="prevBtn">Previous</button>
+          <button id="nextBtn">Next</button>
+          <button id="submitBtn" class="primary">Submit Test</button>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="summaryDialog">
+      <h3>Test Submitted</h3>
+      <p id="summaryText"></p>
+      <button id="closeSummary">Close</button>
+    </dialog>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

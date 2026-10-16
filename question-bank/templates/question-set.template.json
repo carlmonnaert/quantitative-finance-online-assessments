@@ -1,0 +1,28 @@
+{
+  "questions": [
+    {
+      "id": "replace-with-unique-id",
+      "type": "mcq",
+      "title": "Replace with short title",
+      "prompt": "Replace with question prompt",
+      "options": [
+        { "value": "A", "label": "Option A" },
+        { "value": "B", "label": "Option B" },
+        { "value": "C", "label": "Option C" },
+        { "value": "D", "label": "Option D" }
+      ]
+    },
+    {
+      "id": "replace-with-unique-id-2",
+      "type": "numeric",
+      "title": "Replace with numeric title",
+      "prompt": "Replace with numeric prompt"
+    },
+    {
+      "id": "replace-with-unique-id-3",
+      "type": "text",
+      "title": "Replace with free text title",
+      "prompt": "Replace with text prompt"
+    }
+  ]
+}
