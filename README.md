@@ -3,24 +3,37 @@
 This repo contains a lightweight HackerRank-style assessment mimic for quant online assessments.
 
 - Session length: **15 minutes**
-- Question target: **30 questions**
-- Question source: JSON files from `question-bank/questions/`
+- Questions served per run: **30**
+- Question source: JSON files listed in `question-bank/manifest.json`
 
-No real questions are included yet.
+The project currently includes generated question sets across:
+
+- Linear Algebra & Calculus
+- Probability & Statistics
+- Coding & Algorithms
+- Machine Learning
+
+Each run serves a 30-question paper with a fixed layout:
+
+- Complete-answer slots (numeric/text): Q4, Q11, Q12, Q16, Q21, Q22, Q25
+- All other slots: MCQ
 
 ## Quick start
 
 From the repo root:
 
 ```bash
-python3 -m http.server 8000
-```
-
-or:
-
-```bash
 ./start_test.sh
 ```
+
+What this does:
+
+1. Regenerates question files and updates `question-bank/manifest.json`
+2. Starts a local server
+
+Then open:
+
+- `http://localhost:8000`
 
 Optional custom port:
 
@@ -28,28 +41,33 @@ Optional custom port:
 ./start_test.sh 9000
 ```
 
-Open:
+Then open `http://localhost:9000`.
 
-- `http://localhost:8000`
+If you want to serve the current question files without regenerating:
 
-> Do not open `index.html` directly as a `file://` URL; `fetch` for JSON files requires a local server.
+```bash
+python3 -m http.server 8000
+```
 
-## Question bank structure
+> Do not open `index.html` as `file://...`; JSON loading requires HTTP.
+
+## Question bank layout
 
 ```text
 question-bank/
   manifest.json
   questions/
-    *.json
+    coding_algorithms.json
+    linear_algebra_calculus.json
+    machine_learning.json
+    probability_statistics.json
   templates/
     question-set.template.json
 ```
 
-### 1) Add question files
+## Question JSON format
 
-Create one or more files in `question-bank/questions/`.
-
-Each file must be JSON with this top-level shape:
+Each question file uses this top-level shape:
 
 ```json
 {
@@ -58,25 +76,29 @@ Each file must be JSON with this top-level shape:
       "id": "unique-id",
       "type": "mcq",
       "title": "Short title",
-      "prompt": "Full question prompt",
+      "prompt": "Question prompt",
       "options": [
         { "value": "A", "label": "Option A" },
         { "value": "B", "label": "Option B" },
         { "value": "C", "label": "Option C" },
         { "value": "D", "label": "Option D" }
-      ]
+      ],
+      "answer": "B",
+      "explanation": "Optional explanation"
     },
     {
       "id": "unique-id-2",
       "type": "numeric",
       "title": "Numeric question title",
-      "prompt": "Question prompt"
+      "prompt": "Question prompt",
+      "answer": "0.73"
     },
     {
       "id": "unique-id-3",
       "type": "text",
-      "title": "Free-text question title",
-      "prompt": "Question prompt"
+      "title": "Text question title",
+      "prompt": "Question prompt",
+      "answer": "arbitrage"
     }
   ]
 }
@@ -88,48 +110,51 @@ Supported `type` values:
 - `numeric`
 - `text`
 
-### 2) Build/update manifest
+Scoring notes:
 
-Run:
+- `mcq` and `text` are case-insensitive exact string matches.
+- `numeric` accepts small tolerance (`±1e-4`).
+
+## How to add or maintain questions
+
+### Option A: Regenerate dynamic banks (recommended)
+
+```bash
+python3 scripts/generate_questions.py
+```
+
+This rewrites all topic files in `question-bank/questions/` and refreshes `question-bank/manifest.json`.
+
+### Option B: Add your own files manually
+
+1. Create one or more `.json` files in `question-bank/questions/`
+2. Keep the format shown above
+3. Update the manifest file list:
 
 ```bash
 python3 scripts/build_manifest.py
 ```
 
-This scans `question-bank/questions/*.json` and writes the file list into `question-bank/manifest.json`.
+`build_manifest.py` scans `question-bank/questions/*.json` and updates `manifest.json` with discovered filenames.
 
-### 3) Configure assessment settings
+## Runtime behavior
 
-In `question-bank/manifest.json`:
+- Loads all files listed in `manifest.json`
+- Deduplicates by `id` before selection
+- Splits pool into `mcq` and complete-answer (`numeric`/`text`) buckets
+- Fills a fixed 30-slot structure (7 complete-answer slots, 23 MCQ slots)
+- Falls back across buckets if one bucket is exhausted
+- Shows navigation grid with answered/current states
+- Supports previous/next and direct question jump
+- Auto-submits when timer expires
+- Displays submission summary including score
+- Shows per-question report with result, points, your answer, correct answer, and explanation
 
-```json
-{
-  "assessmentConfig": {
-    "durationMinutes": 15,
-    "targetQuestionCount": 30
-  },
-  "files": ["file1.json", "file2.json"]
-}
-```
+## Main files
 
-- `durationMinutes`: total timer duration.
-- `targetQuestionCount`: number of questions sampled from all loaded questions.
-
-If fewer than 30 questions are available, the app uses all loaded questions.
-
-## Current behavior
-
-- Randomizes the loaded question pool.
-- Selects up to `targetQuestionCount` questions.
-- Shows question index buttons (answered/current states).
-- Supports previous/next navigation.
-- Auto-submits when timer reaches zero.
-- Manual submission button included.
-
-## Files
-
-- `index.html`: main assessment UI
-- `styles.css`: styling
-- `app.js`: loader, timer, state, rendering, submission
-- `scripts/build_manifest.py`: manifest generation helper
-- `question-bank/templates/question-set.template.json`: authoring template
+- `index.html`: assessment UI structure
+- `styles.css`: interface styling
+- `app.js`: loader, timer, rendering, scoring
+- `start_test.sh`: generate + serve launcher
+- `scripts/generate_questions.py`: topic-bank generator + manifest updater
+- `scripts/build_manifest.py`: manifest-only updater for manual files

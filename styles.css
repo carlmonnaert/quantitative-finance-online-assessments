@@ -22,6 +22,34 @@ body {
   border-bottom: 1px solid #e5e7eb;
 }
 
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.brand-mark {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+}
+
+.brand-mark .hex {
+  color: #00ea64;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.brand-mark .h {
+  position: absolute;
+  color: #0b1320;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
 h1 {
   margin: 0;
   font-size: 1.2rem;
@@ -152,6 +180,53 @@ button.primary {
   border-radius: 0.75rem;
   padding: 1rem;
   background: white;
+}
+
+#summaryDialog {
+  width: min(920px, 94vw);
+  max-height: 86vh;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.summary-report {
+  margin: 1rem 0;
+  max-height: 56vh;
+  overflow: auto;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.report-item {
+  border: 1px solid #d1d5db;
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: #ffffff;
+}
+
+.report-item.correct {
+  border-color: #059669;
+  background: #ecfdf5;
+}
+
+.report-item.incorrect {
+  border-color: #b91c1c;
+  background: #fef2f2;
+}
+
+.report-title {
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+}
+
+.report-meta {
+  margin: 0.2rem 0;
+  line-height: 1.35;
+}
+
+.report-meta strong {
+  font-weight: 700;
 }
 
 .hidden {

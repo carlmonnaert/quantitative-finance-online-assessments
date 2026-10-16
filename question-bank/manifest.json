@@ -3,5 +3,10 @@
     "durationMinutes": 15,
     "targetQuestionCount": 30
   },
-  "files": []
+  "files": [
+    "coding_algorithms.json",
+    "linear_algebra_calculus.json",
+    "machine_learning.json",
+    "probability_statistics.json"
+  ]
 }

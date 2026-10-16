@@ -8,9 +8,15 @@
   </head>
   <body>
     <header class="topbar">
-      <div>
+      <div class="brand-group">
+        <div class="brand-mark" aria-hidden="true">
+          <span class="hex">⬢</span>
+          <span class="h">H</span>
+        </div>
+        <div>
         <h1>Quant Trading / Quant Research Assessment</h1>
         <p class="subtitle">HackerRank-style mock test interface</p>
+        </div>
       </div>
       <div class="status-group">
         <div class="pill" id="questionProgress">Question 0 / 0</div>
@@ -48,6 +54,7 @@
     <dialog id="summaryDialog">
       <h3>Test Submitted</h3>
       <p id="summaryText"></p>
+      <div id="summaryReport" class="summary-report"></div>
       <button id="closeSummary">Close</button>
     </dialog>
 

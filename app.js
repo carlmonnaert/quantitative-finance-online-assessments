@@ -32,6 +32,7 @@ const elements = {
   submitBtn: document.getElementById('submitBtn'),
   summaryDialog: document.getElementById('summaryDialog'),
   summaryText: document.getElementById('summaryText'),
+  summaryReport: document.getElementById('summaryReport'),
   closeSummary: document.getElementById('closeSummary'),
 };
 
@@ -156,6 +157,76 @@ function renderCurrentQuestion() {
   elements.nextBtn.disabled = state.currentIndex >= state.selectedQuestions.length - 1;
 }
 
+function isCorrectAnswer(question, userRaw) {
+  if (userRaw === undefined || userRaw === null || question.answer === undefined) {
+    return false;
+  }
+  const userStr = String(userRaw).trim();
+  const targetStr = String(question.answer).trim();
+
+  if (question.type === 'numeric') {
+    const uVal = Number(userStr);
+    const tVal = Number(targetStr);
+    if (!Number.isNaN(uVal) && !Number.isNaN(tVal)) {
+      return Math.abs(uVal - tVal) <= 1e-4;
+    }
+  }
+  return userStr.toLowerCase() === targetStr.toLowerCase();
+}
+
+function formatAnswerForDisplay(question, rawValue) {
+  if (rawValue === undefined || rawValue === null) {
+    return '—';
+  }
+
+  const normalized = String(rawValue).trim();
+  if (normalized.length === 0) {
+    return '—';
+  }
+
+  if (question.type === 'mcq' && Array.isArray(question.options)) {
+    const matchedOption = question.options.find((option) => option.value === normalized);
+    if (matchedOption) {
+      return `${matchedOption.value} (${matchedOption.label})`;
+    }
+  }
+
+  return normalized;
+}
+
+function renderSubmissionReport(results) {
+  elements.summaryReport.innerHTML = '';
+
+  const addMetaLine = (container, label, value) => {
+    const row = document.createElement('p');
+    row.className = 'report-meta';
+
+    const strong = document.createElement('strong');
+    strong.textContent = `${label}:`;
+
+    const text = document.createTextNode(` ${value}`);
+    row.appendChild(strong);
+    row.appendChild(text);
+    container.appendChild(row);
+  };
+
+  results.forEach((result) => {
+    const item = document.createElement('article');
+    item.className = `report-item ${result.isCorrect ? 'correct' : 'incorrect'}`;
+
+    const title = document.createElement('p');
+    title.className = 'report-title';
+    title.textContent = `Q${result.questionNumber}: ${result.title}`;
+
+    item.appendChild(title);
+    addMetaLine(item, 'Result', `${result.isCorrect ? 'Correct' : 'Incorrect'} | Score: ${result.points}/1`);
+    addMetaLine(item, 'Your answer', result.userAnswerDisplay);
+    addMetaLine(item, 'Correct answer', result.correctAnswerDisplay);
+    addMetaLine(item, 'Explanation', result.explanation);
+    elements.summaryReport.appendChild(item);
+  });
+}
+
 function submitTest(reason = 'manual') {
   if (state.submitted) {
     return;
@@ -164,10 +235,32 @@ function submitTest(reason = 'manual') {
   clearInterval(state.timerInterval);
 
   const totalQuestions = state.selectedQuestions.length;
-  const answeredCount = state.selectedQuestions.filter((question) => isAnswered(question.id)).length;
+
+  const results = state.selectedQuestions.map((question, index) => {
+    const userRaw = state.answers[question.id];
+    const answered = isAnswered(question.id);
+    const isCorrect = isCorrectAnswer(question, userRaw);
+    return {
+      questionNumber: index + 1,
+      title: question.title,
+      isCorrect,
+      points: isCorrect ? 1 : 0,
+      answered,
+      userAnswerDisplay: formatAnswerForDisplay(question, userRaw),
+      correctAnswerDisplay: formatAnswerForDisplay(question, question.answer),
+      explanation: question.explanation ?? 'No explanation provided.',
+    };
+  });
+
+  const answeredCount = results.filter((result) => result.answered).length;
+  const correctCount = results.filter((result) => result.isCorrect).length;
   const unanswered = totalQuestions - answeredCount;
 
-  elements.summaryText.textContent = `Submission reason: ${reason}. Answered ${answeredCount} of ${totalQuestions} questions. Unanswered: ${unanswered}.`;
+  elements.summaryText.textContent =
+    `Submission reason: ${reason}. ` +
+    `Score: ${correctCount} / ${totalQuestions} (${Math.round((correctCount / (totalQuestions || 1)) * 100)}%). ` +
+    `Answered: ${answeredCount}, Unanswered: ${unanswered}.`;
+  renderSubmissionReport(results);
   elements.summaryDialog.showModal();
 
   elements.prevBtn.disabled = true;
@@ -188,6 +281,51 @@ function startTimer() {
       submitTest('time_expired');
     }
   }, 1000);
+}
+
+// 1-based question numbers that must be "Complete" (numeric / text) questions:
+// Q4; Q11 - Q12; Q16; Q21 - Q22; Q25
+// All remaining slots (Q1-Q3; Q5-Q10; Q13-Q15; Q17-Q20; Q23-Q24; Q26-Q30) are MCQ.
+const COMPLETE_QUESTION_NUMBERS = new Set([4, 11, 12, 16, 21, 22, 25]);
+
+function buildStructuredQuestionList(allQuestions, targetCount) {
+  // Deduplicate by question id so no question ever appears twice
+  const seenIds = new Set();
+  const uniqueQuestions = [];
+  for (const q of allQuestions) {
+    if (q && q.id && !seenIds.has(q.id)) {
+      seenIds.add(q.id);
+      uniqueQuestions.push(q);
+    }
+  }
+
+  const mcqPool = shuffle(uniqueQuestions.filter((q) => q.type === 'mcq'));
+  const completePool = shuffle(uniqueQuestions.filter((q) => q.type !== 'mcq'));
+
+  const selected = [];
+  let mcqIndex = 0;
+  let completeIndex = 0;
+
+  for (let qNum = 1; qNum <= targetCount; qNum += 1) {
+    const wantsComplete = COMPLETE_QUESTION_NUMBERS.has(qNum);
+
+    if (wantsComplete && completeIndex < completePool.length) {
+      selected.push(completePool[completeIndex]);
+      completeIndex += 1;
+    } else if (!wantsComplete && mcqIndex < mcqPool.length) {
+      selected.push(mcqPool[mcqIndex]);
+      mcqIndex += 1;
+    } else if (mcqIndex < mcqPool.length) {
+      // Fallback if one pool is exhausted
+      selected.push(mcqPool[mcqIndex]);
+      mcqIndex += 1;
+    } else if (completeIndex < completePool.length) {
+      selected.push(completePool[completeIndex]);
+      completeIndex += 1;
+    }
+  }
+
+  return selected;
 }
 
 async function loadQuestionsFromManifest() {
@@ -223,9 +361,10 @@ async function loadQuestionsFromManifest() {
   }
 
   state.questions = loadedQuestions;
-
-  const randomized = shuffle(state.questions);
-  state.selectedQuestions = randomized.slice(0, state.config.targetQuestionCount);
+  state.selectedQuestions = buildStructuredQuestionList(
+    state.questions,
+    state.config.targetQuestionCount
+  );
 
   if (state.selectedQuestions.length === 0) {
     elements.emptyState.classList.remove('hidden');
